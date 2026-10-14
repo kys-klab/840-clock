@@ -731,7 +731,7 @@ $("sendLink").addEventListener("click", ev=>{
 
 // ── 선생님께 바로 보내기: 구글 Apps Script 웹 앱 → 시트 '840 기록' 탭. 같은 기록 ID는 한 줄로 덮어씀 ──
 // 배포한 웹 앱 주소(…/exec)를 넣으면 켜짐. 비어 있으면 설문 링크로만 보냄
-const SEND_URL = "";
+const SEND_URL = "https://script.google.com/macros/s/AKfycbwgy7w9mKiv4w5wNgeMDEbYIie3nI5JHEDGDjiEBev7imXuc8rxxwxzblWHPqlQwWw2/exec";
 const OUTBOX = KEY+"-outbox";
 const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function payload(status){
