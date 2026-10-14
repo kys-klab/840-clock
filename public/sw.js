@@ -1,6 +1,6 @@
 // 840 시계 오프라인 캐시. 시험 중 인터넷이 끊겨도 시계가 계속 열리도록 함.
 // 페이지는 인터넷이 되면 항상 새 버전을 받고(네트워크 우선), 아이콘·글꼴은 캐시 우선.
-const CACHE = "840-v3";
+const CACHE = "840-v4";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

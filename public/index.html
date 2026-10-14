@@ -265,16 +265,12 @@ th.n{text-align:right}
 .rapp .big{font-size:clamp(3.6rem,min(10.5vw,28vh),12rem)}
 .rmini{margin:0;font:400 clamp(.85rem,1.3vw,1.05rem) var(--num);font-variant-numeric:tabular-nums;color:var(--ink-2);text-align:center;white-space:nowrap}
 .rnote{margin:0;max-width:30em;text-wrap:balance;font-size:.82rem;line-height:1.6;color:var(--ink-3);text-align:center}
-.rcards{grid-template-columns:repeat(6,minmax(0,1fr))}
-.rcards .set{grid-column:span 2}
-.rcards .set.wide{grid-column:span 3}
 .rcards .set .name{line-height:1.4}
 .rcards .set small{font-family:var(--txt);font-size:clamp(.72rem,1.05vw,.9rem);padding:0 8px;line-height:1.35;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rcards .set.on small{color:var(--ink)}
-.rcards .set.prim{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.rcards .set.prim small,.rcards .set.prim .ord{color:rgba(10,10,9,.62)}
-.rcards .set.prim:active{background:rgba(236,229,211,.82)}
+/* 저장·전송: 다른 카드와 같은 바탕, 테두리만 조금 진하게 */
+.rcards .set.prim{border-color:var(--ink-2)}
 .rcards .set.back{background:transparent;border-style:dashed;color:var(--ink-2)}
 /* 카드를 누르면 열리는 창: 모든 칸 사이를 같은 간격으로 */
 #panel{z-index:6}
@@ -317,6 +313,24 @@ th.n{text-align:right}
   .rapp .rcards .set small{font-size:clamp(.66rem,2.9vw,.8rem);bottom:6px}
   .pcard{padding:0 16px 22px}
 }
+
+.cuts{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.cuts div{border:1px solid var(--line);border-radius:10px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.cuts span{font-size:.72rem;color:var(--ink-3);white-space:nowrap}
+.cuts b{font:400 1.1rem var(--num);font-variant-numeric:tabular-nums}
+.cuts div.on{background:var(--ink);border-color:var(--ink)}
+.cuts div.on span,.cuts div.on b{color:var(--bg)}
+.rlist{display:flex;flex-direction:column}
+.rrow{display:grid;grid-template-columns:4.6em minmax(0,7em) minmax(0,1fr) 3em 1.4em;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.rq{font-family:var(--num)}.rq small{font-family:var(--txt);font-size:.7rem;color:var(--ink-3)}
+.rs{color:var(--ink-2);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbar{height:8px;border-radius:4px;background:var(--fill);overflow:hidden}.rbar i{display:block;height:100%;background:var(--ink-2)}
+.rp{font-family:var(--num);text-align:right}.rm{text-align:center;color:var(--ink-2)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px}
+.rgrid div{border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(236,229,211,var(--a));border:1px solid transparent}
+.rgrid div.ng{border-color:var(--ink)}
+.rgrid span{font:400 .72rem var(--num);color:var(--ink-2)}.rgrid b{font:400 .9rem var(--num)}
+@media (max-width:520px){ .cuts{grid-template-columns:repeat(4,minmax(0,1fr))} .rrow{grid-template-columns:4.2em minmax(0,1fr) 3em 1.2em} .rs{display:none} }
 </style>
 </head><body>
 
@@ -445,6 +459,13 @@ th.n{text-align:right}
       <div id="gRes" class="gres" hidden></div>
     </section>
 
+    <section data-p="cut">
+      <p class="pmsg" id="cutMsg"></p>
+      <div class="blk" id="cutBox" hidden><div class="lab" id="cutLab">등급컷</div><div class="cuts" id="cutGrid"></div></div>
+      <div class="blk" id="rateBox" hidden><div class="lab">오답률 높은 문항 <small id="rateN"></small></div><div class="rlist" id="rateTop"></div></div>
+      <div class="blk" id="rateAllBox" hidden><div class="lab">전체 문항 오답률 <small>진할수록 많이 틀린 문항 · 테두리는 내가 틀린 문항</small></div><div class="rgrid" id="rateAll"></div></div>
+    </section>
+
     <section data-p="hard">
       <div class="blk"><div class="lab">고난도 지문 <small>여러 개 고를 수 있어요</small></div><div class="chips" id="hardSet"></div></div>
       <div class="blk"><div class="lab">고난도 문항 <small>여러 개 고를 수 있어요</small></div><div class="qgrid" id="hardQ"></div></div>
@@ -491,7 +512,7 @@ const FORM = { url:"https://docs.google.com/forms/d/e/1FAIpQLSdHDHoTlpLOPK1kukZO
 const SUBJ = {hwa:"화법과 작문", eon:"언어와 매체"};
 const KEY = "nmg-mock-clock-v1";
 let S = norm(load()) || fresh();
-function fresh(){ return {gk:null, g3:[], rid:"", sentAt:"", exam:"", acc:0, since:null, clears:{}, omr:{}, subj:"", graded:false, hardSets:[], hardQs:[], memo:"", finalOpen:false, name:"", sentFinal:false}; }
+function fresh(){ return {gk:null, g3:[], rid:"", sentAt:"", exam:"", acc:0, since:null, clears:{}, omr:{}, subj:"", graded:false, cuts:[], hardSets:[], hardQs:[], memo:"", finalOpen:false, name:"", sentFinal:false}; }
 function norm(s){ if(!s) return null; const old=!("exam" in s); const f=fresh(); for(const k in f) if(!(k in s)) s[k]=f[k];
   // 예전 기록: 어려웠던 세트·문항을 하나씩 받던 것을 여러 개 고르기로
   if(typeof s.hardSet==="string"){ if(s.hardSet && !s.hardSets.length) s.hardSets=[s.hardSet]; delete s.hardSet; }
@@ -655,31 +676,63 @@ function renderTrack(){
   $("rScale").innerHTML = [0,1,2,3,4].map(i=>`<span>${Math.round(step*i/60000)}분</span>`).join("");
 }
 
+// ── 등급컷·오답률: 시트에서 받아 옴(채점한 학생들의 답안으로 계산) ──
+function gradeOf(score){ const c=S.cuts||[]; if(c.length!==8) return 0; for(let i=0;i<8;i++) if(score>=c[i]) return i+1; return 9; }
+async function loadStats(){
+  const R=result(), show=(id,on)=>$(id).hidden=!on;
+  ["cutBox","rateBox","rateAllBox"].forEach(id=>show(id,false));
+  if(!EXAM.gradable){ $("cutMsg").textContent="정답이 등록되지 않은 회차라 등급컷과 오답률이 없어요."; return; }
+  if(!R){ $("cutMsg").textContent="OMR 채점을 먼저 해 주세요. 채점이 끝나면 등급컷과 오답률을 볼 수 있어요."; return; }
+  $("cutMsg").textContent="불러오는 중…";
+  let j=null;
+  try{ const r=await fetch(SEND_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"stats",exam:EXAM.name,subj:S.subj})}); j=await r.json(); }catch(e){}
+  if(!j||!j.ok){ $("cutMsg").textContent="인터넷에 연결되지 않아 불러오지 못했어요. 연결된 뒤 다시 열어 주세요."; return; }
+  S.cuts=Array.isArray(j.cuts)&&j.cuts.length===8 ? j.cuts : []; save(); renderCards(); renderSummary();
+  const g=gradeOf(R.score);
+  $("cutMsg").textContent = g ? `내 원점수 ${R.score}점 · 예상 ${g}등급` : `내 원점수 ${R.score}점 · 이 회차의 등급컷은 아직 등록되지 않았어요.`;
+  if(S.cuts.length===8){
+    $("cutLab").textContent=`등급컷 (원점수 · ${SUBJ[S.subj]})`;
+    $("cutGrid").innerHTML=S.cuts.map((c,i)=>`<div class="${g===i+1?"on":""}"><span>${i+1}등급</span><b>${c}</b></div>`).join("");
+    show("cutBox",true);
+  }
+  const rate=j.rate||[];
+  if(j.n>0 && rate.some(v=>v!==null)){
+    $("rateN").textContent=`채점한 ${j.n}명 기준`+(j.n<10?" · 인원이 적어 참고만 해 주세요":"");
+    const qs=[]; for(let q=1;q<=EXAM.total;q++) if(rate[q-1]!==null) qs.push(q);
+    const mine=q=>S.omr[q]===keyOf(q);
+    $("rateTop").innerHTML=qs.slice().sort((a,b)=>rate[b-1]-rate[a-1]||a-b).slice(0,10).map(q=>
+      `<div class="rrow"><span class="rq">${q}번${pts(q)===3?" <small>3점</small>":""}</span><span class="rs">${setOfQ(q)||""}</span>`+
+      `<span class="rbar"><i style="width:${rate[q-1]}%"></i></span><span class="rp">${Math.round(rate[q-1])}%</span><span class="rm">${mine(q)?"○":"✕"}</span></div>`).join("");
+    $("rateAll").innerHTML=qs.map(q=>`<div class="${mine(q)?"":"ng"}" style="--a:${(0.06+rate[q-1]/100*0.6).toFixed(2)}"><span>${q}</span><b>${Math.round(rate[q-1])}</b></div>`).join("");
+    show("rateBox",true); show("rateAllBox",true);
+  } else if(g || S.cuts.length===8){ /* 등급컷만 */ }
+  else $("cutMsg").textContent+=" 오답률은 채점한 학생이 모이면 보여요.";
+}
+
 // ── 결과 화면: 왼쪽 요약 + 카드 ──
 // 카드: 1~5는 누르면 내용이 열림, 6·7은 누르면 바로 실행(결과지 저장·전송)
 const CARDS = [
-  {id:"time",   title:"타임스케줄"},
+  {id:"time",   title:"영역별<br>시간 관리"},
   {id:"line",   title:"지문별<br>타임라인"},
   {id:"omr",    title:"OMR 채점"},
+  {id:"cut",    title:"등급컷<br>오답률"},
   {id:"hard",   title:"나의<br>고난도 세트"},
   {id:"review", title:"시험 후기"},
-  {id:"back",   title:"시험 화면<br>다시 보기", cls:"back"},
-  {id:"save",   title:"결과지 저장", cls:"prim wide"},
-  {id:"send",   title:"시험 결과 전송", cls:"prim wide"}];
-const PTITLE = {time:"타임스케줄", line:"지문별 타임라인", omr:"OMR 채점", hard:"나의 고난도 세트", review:"시험 후기", save:"결과지 저장", send:"시험 결과 전송"};
-(function(){
-  let i=0;
-  $("rCards").innerHTML = CARDS.map(c=>`<button type="button" class="set ${c.cls||""}" data-c="${c.id}"><span class="ord">${c.id==="back"?"":++i}</span><span class="name">${c.title}</span><small></small></button>`).join("");
-})();
+  {id:"save",   title:"결과지<br>저장", cls:"prim"},
+  {id:"send",   title:"시험 결과<br>전송", cls:"prim"},
+  {id:"back",   title:"시험 화면<br>돌아가기", cls:"back"}];
+const PTITLE = {time:"영역별 시간 관리", line:"지문별 타임라인", omr:"OMR 채점", cut:"등급컷 · 오답률", hard:"나의 고난도 세트", review:"시험 후기", save:"결과지 저장", send:"시험 결과 전송"};
+$("rCards").innerHTML = CARDS.map((c,i)=>`<button type="button" class="set ${c.cls||""}" data-c="${c.id}"><span class="ord">${i+1}</span><span class="name">${c.title}</span><small></small></button>`).join("");
 function cardSub(id){
   const {ds,sum}=sumTimes(), R=result(), filled=Object.values(S.omr).filter(Boolean).length;
   switch(id){
-    case "time": return "영역별 시간";
+    case "time": return `총 ${fmt(now())}`;
     case "line": return `${ds.length}/${SETS.length} 세트`;
     case "omr": return R ? `${R.score}점` : filled ? `${filled}/${EXAM.total} 입력` : "답 입력하기";
     case "hard": return S.hardSets.length||S.hardQs.length ? `${S.hardSets.length}지문 · ${S.hardQs.length}문항` : "직접 고르기";
     case "review": return S.memo.trim() ? "작성함" : "남기기";
     case "back": return "";
+    case "cut": return R ? (gradeOf(R.score) ? `예상 ${gradeOf(R.score)}등급` : "보기") : "채점 후 보기";
     case "save": return IMG_SAVED ? "저장함 · 다시 저장" : "이미지로 저장";
     case "send": return S.sentFinal ? `보냄 ${S.sentAt}` : "선생님께 보내기";
   }
@@ -696,7 +749,7 @@ function renderSummary(){
   const e=now(), R=result(), {sum}=sumTimes();
   $("rExam").textContent = [EXAM.name, nm()].filter(Boolean).join("  ·  ");
   setH("rBig", fmtH(e));
-  $("rEl").textContent = R ? `원점수 ${R.score}점` : "총 소요 시간";
+  $("rEl").textContent = R ? `원점수 ${R.score}점` + (gradeOf(R.score) ? ` · ${gradeOf(R.score)}등급` : "") : "총 소요 시간";
   $("rCs").textContent = e>LIMIT ? `${fmt(e-LIMIT)} 초과` : `남은 시간 ${fmt(LIMIT-e)}`;
   $("rMini").textContent = `독서 ${fmt(sum.dok)}  ·  문학 ${fmt(sum.mun)}  ·  선택 ${fmt(sum.sel)}`;
   renderCards();
@@ -706,6 +759,7 @@ function openPanel(id){
   $("panel").querySelectorAll("section[data-p]").forEach(x=>x.hidden = x.dataset.p!==id);
   $("panel").hidden=false; $("panel").querySelector(".card").scrollTop=0;
   if(id==="line") renderTrack();
+  if(id==="cut") loadStats();
 }
 $("rCards").addEventListener("click", ev=>{
   const b=ev.target.closest(".set[data-c]"); if(!b) return; const id=b.dataset.c;
