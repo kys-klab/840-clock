@@ -144,6 +144,8 @@ th.n{text-align:right}
 .limit{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed var(--ink);pointer-events:none}
 .limit span{position:absolute;top:-1.4em;left:0;transform:translateX(-50%);font:400 .72rem var(--num);color:var(--ink-2);white-space:nowrap}
 .seg.rest{background:transparent;color:var(--ink-3)}
+.seg.fin{background:repeating-linear-gradient(135deg,rgba(236,229,211,.22) 0 6px,rgba(236,229,211,.1) 6px 12px);color:var(--ink)}
+tr.finrow td{color:var(--ink-2);border-top:1px dashed var(--line)}
 .scale{display:flex;justify-content:space-between;font:400 .72rem var(--num);color:var(--ink-3);margin-top:6px}
 .send{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .send label{font-size:.9rem;color:var(--ink-2)}
@@ -210,11 +212,15 @@ th.n{text-align:right}
 .final{position:fixed;inset:0;background:rgba(10,10,9,.8);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
   display:flex;align-items:center;justify-content:center;padding:16px;z-index:4;text-align:center}
 .fbox{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:560px}
-.fbox .ftag{margin:0;font-size:.85rem;letter-spacing:.08em;color:var(--ink-2)}
+.fbox .fnote{margin:-4px 0 4px;font-size:.88rem;color:var(--ink-2)}
+.fclock{display:flex;justify-content:center}
+.fdial{display:none;width:clamp(200px,min(42vh,60vw),420px);height:auto}
+.anamode .fdial{display:block}
 .fbox h2{margin:0;font-size:clamp(1.5rem,4.4vw,2.4rem);font-weight:800;line-height:1.35}
 .fbox .ftime{margin:6px 0 0;font:var(--numw) clamp(3rem,12vw,7rem)/1 var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
 .fbox .fsub{margin:0;font-size:.9rem;color:var(--ink-2);line-height:1.6}
 .anamode .final .ftime{display:none}
+.anamode .final .fsub{display:none}
 .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 .acts button{font:500 .95rem var(--txt);color:var(--ink-2);background:transparent;border:1px solid var(--line);border-radius:999px;padding:10px 20px;cursor:pointer}
 .acts button.main{color:var(--bg);background:var(--ink);border-color:var(--ink)}
@@ -388,11 +394,11 @@ th.n{text-align:right}
 
 <div class="final" id="final" hidden>
   <div class="fbox">
-    <p class="ftag">모든 세트를 끝냈어요</p>
+    <div class="fclock" id="fClock"><p class="ftime" id="fRemain"></p></div>
+    <p class="fsub" id="fSub">남은 시간</p>
     <h2>최종 문항 점검 및<br>OMR 작성</h2>
-    <p class="ftime" id="fRemain"></p>
-    <p class="fsub" id="fSub">남은 시간 · 시계는 계속 흐르고 있어요</p>
     <button class="startbtn" id="fEnd" type="button"><span>시험 종료</span></button>
+    <p class="fnote">종료를 누르면 시험이 마무리됩니다.</p>
     <button class="linkbtn" id="fBack" type="button">세트 버튼 다시 보기</button>
   </div>
 </div>
@@ -596,12 +602,19 @@ $("modes").addEventListener("click", ev=>{ const b=ev.target.closest("button"); 
 $("mode").onclick = ()=> setMode(MODE==="analog" ? "digital" : "analog");
 applyMode();
 const rot=(id,deg)=>$(id).setAttribute("transform",`rotate(${deg} 100 100)`);
+// 최종 점검 창 위쪽 시계: 아날로그 모드면 같은 시계를 하나 더(디지털 숫자는 보이지 않게)
+(function(){
+  const d=$("dial").cloneNode(true); d.id="fDial"; d.classList.add("fdial"); d.removeAttribute("aria-label");
+  d.querySelectorAll("[id]").forEach(el=>{ el.id = "f"+el.id; });
+  $("fClock").appendChild(d);
+})();
 
 function paint(){
   const e=now(), r=LIMIT-e, em=Math.floor(e/60000);
   if(MODE==="analog"){
     const ts=8*3600+40*60+Math.floor(e/1000), hh=Math.floor(ts/3600)%12, mm=Math.floor(ts/60)%60, ss=ts%60;
     rot("hh",(hh+mm/60+ss/3600)*30); rot("mh",(mm+ss/60)*6); rot("sh",ss*6);
+    if(S.finalOpen){ rot("fhh",(hh+mm/60+ss/3600)*30); rot("fmh",(mm+ss/60)*6); rot("fsh",ss*6); }
   }
   setH("remain", fmtH(r>=0 ? r : 0));
   $("elapsed").textContent = r<0 ? `80분 경과 (+${Math.floor(-r/60000)}분)` : `${em}분 경과`;
@@ -617,7 +630,7 @@ function paint(){
   $("final").hidden = !(running() && allDone() && S.finalOpen);
   if(!$("final").hidden){
     setH("fRemain", fmtH(r>=0 ? r : 0));
-    const fs = r<0 ? `시험 시간 80분이 지났어요 (+${Math.floor(-r/60000)}분)` : "남은 시간 · 시계는 계속 흐르고 있어요";
+    const fs = r<0 ? `시험 시간 80분이 지났어요 (+${Math.floor(-r/60000)}분)` : "남은 시간";
     if($("fSub").textContent!==fs) $("fSub").textContent=fs;
   }
   $("app").classList.toggle("idle", fresh0);
@@ -669,7 +682,15 @@ function renderTrack(){
     const w = x.d/span*100;
     const px = w/100*tw, lab = px>72 ? `<span>${short(x.n)}</span><em>${fmt(x.d)}</em>` : (px>24 ? `<em>${Math.round(x.d/60000)}′</em>` : "");
     return `<div class="seg a-${AREA(x.n)}" style="flex:0 0 ${w}%" title="${x.n} ${fmt(x.d)}">${lab}</div>`;
-  }).join("") + (restMs>0 ? `<div class="seg rest" style="flex:1 1 0">${restMs/span*tw>64 ? (allDone() ? "최종 점검" : ds.length && e>=LIMIT ? "" : "미사용·미완") : ""}</div>` : "");
+  }).join("") + (()=>{
+    // 모든 세트 뒤 최종 점검·OMR 시간은 따로 한 칸, 그 뒤 남은 시간은 빈 칸
+    const fm = allDone() ? finalMs() : 0, left = Math.max(0, span - e);
+    let h = "";
+    if(fm>0){ const w=fm/span*100, px=w/100*tw;
+      h += `<div class="seg fin" style="flex:0 0 ${w}%" title="최종 점검·OMR ${fmt(fm)}">${px>72 ? `<span>최종 점검</span><em>${fmt(fm)}</em>` : px>24 ? `<em>${Math.round(fm/60000)}′</em>` : ""}</div>`; }
+    const rest = fm>0 ? left : restMs;
+    if(rest>0) h += `<div class="seg rest" style="flex:1 1 0">${rest/span*tw>64 ? (fm>0 || allDone() ? "남은 시간" : ds.length && e>=LIMIT ? "" : "미사용·미완") : ""}</div>`;
+    return h; })();
   $("rLimit").hidden = !(span > LIMIT);
   $("rLimit").style.left = (LIMIT/span*100) + "%";
   const step = span/4;
@@ -727,7 +748,7 @@ function cardSub(id){
   const {ds,sum}=sumTimes(), R=result(), filled=Object.values(S.omr).filter(Boolean).length;
   switch(id){
     case "time": return `총 ${fmt(now())}`;
-    case "line": return `${ds.length}/${SETS.length} 세트`;
+    case "line": return allDone()&&finalMs()>0 ? `최종 점검 ${fmt(finalMs())}` : `${ds.length}/${SETS.length} 세트`;
     case "omr": return R ? `${R.score}점` : filled ? `${filled}/${EXAM.total} 입력` : "답 입력하기";
     case "hard": return S.hardSets.length||S.hardQs.length ? `${S.hardSets.length}지문 · ${S.hardQs.length}문항` : "직접 고르기";
     case "review": return S.memo.trim() ? "작성함" : "남기기";
@@ -800,7 +821,8 @@ function renderTable(){
   const okc = n => R && R.per[n] ? `<td class="n">${R.per[n][0]}/${R.per[n][1]}</td>` : (R?`<td class="n"></td>`:"");
   $("thOk").hidden = !R;
   $("rBody").innerHTML = ds.map(x=>`<tr><td>${x.i}</td><td>${x.n}</td><td class="n">${fmt(x.d)}</td><td class="n">${fmt(x.t)}</td>${okc(x.n)}</tr>`).join("")
-    + left.map(n=>`<tr style="color:var(--ink-3)"><td>–</td><td>${n}</td><td class="n">미완</td><td class="n"></td>${okc(n)}</tr>`).join("");
+    + left.map(n=>`<tr style="color:var(--ink-3)"><td>–</td><td>${n}</td><td class="n">미완</td><td class="n"></td>${okc(n)}</tr>`).join("")
+    + (allDone() && finalMs()>0 ? `<tr class="finrow"><td>–</td><td>최종 점검 · OMR</td><td class="n">${fmt(finalMs())}</td><td class="n">${fmt(now())}</td>${R?`<td class="n"></td>`:""}</tr>` : "");
 }
 
 // ── OMR ──
