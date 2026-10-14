@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>840 시계</title>
+<meta name="theme-color" content="#0a0a09">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="840 시계">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@200;300;400&family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+/* 홈 화면 앱(전체 화면)에서 노치·홈 막대 영역을 비켜 가도록 안쪽 여백 */
+html{background:#0a0a09}
+body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);box-sizing:border-box}
+/* 좌: 큰 남은 시간 + 옆에 경과·수능 기준 시각, 하단에 흐린 보조 버튼줄 / 우: 3×3 세트 버튼. 검정 바탕에 아이보리 한 색 */
+:root{
+  --bg:#0a0a09;
+  --ink:#ece5d3;
+  --ink-2:rgba(236,229,211,.62);
+  --ink-3:rgba(236,229,211,.36);
+  --line:rgba(236,229,211,.16);
+  --fill:rgba(236,229,211,.06);
+  --num:"Azeret Mono",ui-monospace,Menlo,monospace;
+  --numw:200;
+  --txt:"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--txt);margin:0;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.app{height:100%;box-sizing:border-box;padding:16px;display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px}
+
+/* 시계 영역 */
+.clock{display:flex;flex-direction:column;min-width:0}
+.face{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;min-height:0}
+.row{display:flex;align-items:flex-end;justify-content:center;gap:clamp(12px,1.6vw,28px);max-width:100%}
+.big{font-family:var(--num);font-weight:var(--numw);font-variant-numeric:tabular-nums;line-height:.82;
+  font-size:clamp(4.2rem,min(12.5vw,34vh),15rem);letter-spacing:-.04em;white-space:nowrap}
+.side{display:flex;flex-direction:column;align-items:center;gap:.5em;padding-bottom:.15em;white-space:nowrap;
+  font-size:clamp(.9rem,1.35vw,1.25rem);line-height:1.2}
+.side .el{color:var(--ink-2);font-weight:500}
+.side .cs{color:var(--ink-3);font-weight:400}
+/* 큰 숫자 쌍점: 글꼴 쌍점이 소문자 높이에 맞춰져 있어 숫자 가운데로 올림 */
+.bc{position:relative;top:-.095em}
+.over .big{color:var(--ink-3)}
+/* 시계 종류 선택 */
+.modes{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.modes button{font:500 .85rem var(--txt);color:var(--ink-3);background:transparent;border:0;border-radius:999px;padding:7px 14px;cursor:pointer}
+.modes button.on{color:var(--bg);background:var(--ink-2)}
+/* 아날로그(수능) 시계 */
+.analog{display:none;align-items:center;justify-content:center;gap:clamp(20px,3vw,48px);max-width:100%}
+.ana .analog{display:flex}
+.ana .row,.ana .bar{display:none}
+/* 아날로그만 보이는 실제 시험장 방식: 숫자 표시 없이 시계 한 개, 선명하게 */
+.dial{width:clamp(240px,min(66vh,40vw),640px);height:auto;display:block;flex:none}
+.dial .face0{fill:rgba(236,229,211,.04)}
+.dial .rim{fill:none;stroke:var(--ink);stroke-width:2.4}
+.dial .tk{stroke:rgba(236,229,211,.7);stroke-width:1.3}
+.dial .tk.h{stroke:var(--ink);stroke-width:3.4}
+.dial text{fill:var(--ink);font:500 17px var(--txt);text-anchor:middle;dominant-baseline:central}
+.dial .hh,.dial .mh{stroke:var(--ink);stroke-linecap:round}
+.dial .hh{stroke-width:6.5}.dial .mh{stroke-width:4}
+.dial .sh{stroke:#e2685c;stroke-width:1.6;stroke-linecap:round}
+.dial .cap{fill:var(--ink)}
+.dial .cap2{fill:#e2685c}
+.adig{display:flex;flex-direction:column;gap:clamp(12px,2.2vh,22px);white-space:nowrap}
+.adig div{display:flex;flex-direction:column;gap:2px}
+.adig small{font-size:.8rem;color:var(--ink-3);letter-spacing:.04em}
+.adig b{font:var(--numw) clamp(2rem,4.2vw,3.6rem)/1 var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink)}
+.adig .sub b{font-size:clamp(1.4rem,2.6vw,2.2rem);color:var(--ink-2)}
+.over .adig .rm b{color:var(--ink-3)}
+.bar{width:min(100%,640px);height:2px;background:var(--line);position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--ink-2);width:0}
+
+.startbtn{display:inline-flex;align-items:center;justify-content:center;height:3.4rem;padding:0 56px;
+  font:700 1.25rem/1 var(--txt);color:var(--bg);background:var(--ink);border:0;border-radius:999px;cursor:pointer;
+  margin-top:clamp(8px,2vh,24px)}
+.startbtn span{display:block;transform:translateY(.04em)}
+
+.notice{margin:-6px 0 0;font-size:.8rem;color:var(--ink-3);text-align:center}
+.kakao{max-width:420px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.kakao p{margin:0;font-size:.88rem;line-height:1.55;color:var(--ink-2)}
+.kakao b{color:var(--ink);font-weight:700}
+.kakao .how{color:var(--ink-3);font-size:.8rem}
+.kbtn{font:700 .9rem var(--txt);color:var(--bg);background:var(--ink);border-radius:999px;padding:9px 18px;text-decoration:none}
+/* 하단 보조 버튼줄: 시험 중엔 흐리게 */
+.foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding-top:12px}
+.foot button{font:500 .85rem var(--txt);color:var(--ink-3);background:transparent;border:1px solid transparent;
+  border-radius:999px;padding:8px 14px;cursor:pointer}
+.foot button:hover{color:var(--ink-2);border-color:var(--line)}
+.foot button.on{color:var(--ink-2);border-color:var(--line)}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+/* 세트 버튼 */
+.sets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:12px;min-width:0}
+.set{position:relative;display:grid;place-items:center;text-align:center;
+  background:var(--fill);border:1px solid var(--line);border-radius:14px;color:var(--ink);
+  font:500 clamp(1.05rem,2vw,1.5rem)/1.25 var(--txt);cursor:pointer;padding:14px 6px;min-height:88px;
+  touch-action:manipulation;transition:background .15s,opacity .15s}
+.set:active{background:rgba(236,229,211,.14)}
+.set .name{display:block;line-height:1.45}
+.set small{position:absolute;left:0;right:0;bottom:10px;font:400 clamp(.75rem,1.1vw,.95rem) var(--num);
+  font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.set .ord{position:absolute;top:9px;left:12px;font:400 .8rem var(--num);color:var(--ink-3)}
+.set.done{background:transparent;border-style:dashed;color:var(--ink-3)}
+.set.done .name{text-decoration:line-through;text-decoration-thickness:1px}
+.idle .set{opacity:.4}
+
+/* 확인·기록 창 */
+.sheet{position:fixed;inset:0;background:rgba(10,10,9,.94);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+.card{width:min(100%,760px);max-height:100%;overflow:auto;border:1px solid var(--line);border-radius:16px;padding:24px;background:var(--bg);box-sizing:border-box}
+.card h2{margin:0 0 4px;font-size:1.15rem;font-weight:700}
+.card p{margin:0 0 18px;color:var(--ink-2);font-size:.92rem;line-height:1.6}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td,th{padding:9px 4px;border-bottom:1px solid var(--line);text-align:left;font-size:.95rem}
+th{font-weight:400;color:var(--ink-3);font-size:.8rem;letter-spacing:.08em}
+td.n{font-family:var(--num);text-align:right}
+th.n{text-align:right}
+/* 기록: 영역 합계 + 풀이 순서 막대 */
+.sec{font-size:.8rem;letter-spacing:.08em;color:var(--ink-3);margin:22px 0 10px}
+.tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tot div{border:1px solid var(--line);border-radius:12px;padding:12px 10px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.tot b{font:400 1.5rem var(--num);font-variant-numeric:tabular-nums}
+.tot span{font-size:clamp(.72rem,3.1vw,.85rem);color:var(--ink-2);white-space:nowrap}
+.tot .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:0}
+.flow{font-size:.95rem;color:var(--ink-2);margin:0 0 24px}
+.track{display:flex;height:58px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg{min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;
+  border-right:2px solid var(--bg);overflow:hidden;white-space:nowrap;font-size:.72rem;line-height:1.15}
+.seg:last-child{border-right:0}
+.seg em{font-style:normal;font-family:var(--num);font-size:.7rem}
+.a-dok{background:var(--ink);color:var(--bg)}
+.a-mun{background:rgba(236,229,211,.6);color:var(--bg)}
+.a-sel{background:rgba(236,229,211,.3);color:var(--ink)}
+.trackwrap{position:relative}
+.limit{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed var(--ink);pointer-events:none}
+.limit span{position:absolute;top:-1.4em;left:0;transform:translateX(-50%);font:400 .72rem var(--num);color:var(--ink-2);white-space:nowrap}
+.seg.rest{background:transparent;color:var(--ink-3)}
+.scale{display:flex;justify-content:space-between;font:400 .72rem var(--num);color:var(--ink-3);margin-top:6px}
+.send{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.send label{font-size:.9rem;color:var(--ink-2)}
+.send input{flex:1 1 140px;min-width:0;font:500 1rem var(--txt);color:var(--ink);background:var(--fill);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;-webkit-user-select:text;user-select:text}
+.send button{font:700 .95rem var(--txt);color:var(--bg);background:var(--ink);border:0;border-radius:999px;padding:11px 20px;cursor:pointer}
+.hint{margin:10px 0 0;font-size:.85rem;color:var(--ink-3)}
+#cTxt{width:100%;box-sizing:border-box;height:9em;margin-top:10px;font:400 .85rem/1.5 var(--num);color:var(--ink);
+  background:var(--fill);border:1px solid var(--line);border-radius:10px;padding:10px;-webkit-user-select:text;user-select:text}
+/* OMR·설문 */
+.subj{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.subj span{font-size:.9rem;color:var(--ink-2);margin-right:4px}
+.subj button,.chips button{font:500 .9rem var(--txt);color:var(--ink-2);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:8px 14px;cursor:pointer}
+.subj button.on,.chips button.on{color:var(--bg);background:var(--ink);border-color:var(--ink)}
+.pad{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px;position:sticky;top:0;background:var(--bg);z-index:2}
+.padHead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.padQ{font:400 1.8rem var(--num);font-variant-numeric:tabular-nums}
+.padSet{font-size:.85rem;color:var(--ink-2);flex:1}
+.padCnt{font:400 .85rem var(--num);color:var(--ink-3)}
+.padKeys{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.padKeys button{height:56px;border-radius:12px;border:1px solid var(--line);background:var(--fill);color:var(--ink);font:400 1.4rem var(--num);cursor:pointer;touch-action:manipulation}
+.padKeys button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.padKeys button:active{background:rgba(236,229,211,.2)}
+.padNav{display:flex;gap:8px;margin-top:8px}
+.padNav button{flex:1;white-space:nowrap;font:500 .85rem var(--txt);color:var(--ink-2);background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 4px;cursor:pointer}
+.orow.cur .no{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+.omr{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px 22px}
+.og h4{margin:0 0 6px;font:500 .8rem var(--txt);color:var(--ink-3);letter-spacing:.04em}
+.orow{display:flex;align-items:center;gap:6px;padding:3px 0}
+.orow .no{width:3.3em;white-space:nowrap;font:400 .9rem var(--num);color:var(--ink-2);text-align:right;margin-right:4px}
+.orow button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink-3);
+  font:400 .95rem var(--num);cursor:pointer;padding:0;touch-action:manipulation}
+.orow button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.orow.ok .no::after{content:" ○";color:var(--ink-2)}
+.orow.ng .no{color:var(--ink)}
+.orow.ng .no::after{content:" ✕";color:var(--ink)}
+.orow button.key{box-shadow:0 0 0 2px var(--ink-2) inset}
+.locked .orow button{cursor:default}
+.gradeRow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.gradeRow button{font:700 .95rem var(--txt);color:var(--bg);background:var(--ink);border:0;border-radius:999px;padding:11px 22px;cursor:pointer}
+.gradeRow .hint{margin:0}
+.gres{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.gres b{font:400 1.6rem var(--num);font-variant-numeric:tabular-nums}
+.gres span{font-size:.9rem;color:var(--ink-2)}
+.q{margin:20px 0 8px;font-size:.9rem;color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.field{width:100%;box-sizing:border-box;font:500 1rem var(--txt);color:var(--ink);background:var(--fill);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;-webkit-user-select:text;user-select:text;resize:vertical}
+.sendbtn{font:700 .95rem var(--txt);color:var(--bg);background:var(--ink);border-radius:999px;padding:11px 20px;text-decoration:none;white-space:nowrap}
+.imgbox{margin-top:12px}
+.imgbox img{display:block;width:100%;max-width:420px;border:1px solid var(--line);border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+.linkbtn{font:400 .85rem var(--txt);color:var(--ink-3);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+.set .rng{display:block;margin-top:5px;font:400 .62em var(--num);color:var(--ink-3);letter-spacing:.02em}
+.set.done .rng{text-decoration:none}
+.exam{font-size:.8rem;color:var(--ink-3);letter-spacing:.06em}
+.setup{display:flex;flex-direction:column;align-items:center;gap:8px;width:min(100%,420px)}
+.setup label{font-size:.85rem;color:var(--ink-2)}
+.setup input{width:100%;box-sizing:border-box;text-align:center;font:500 1.1rem var(--txt);color:var(--ink);background:var(--fill);
+  border:1px solid var(--line);border-radius:12px;padding:12px 14px;-webkit-user-select:text;user-select:text}
+.setup input:focus{outline:none;border-color:var(--ink-2)}
+.setup p{margin:0;min-height:1.3em;font-size:.8rem;color:var(--ink-3);text-align:center;line-height:1.5}
+/* 마지막 세트 뒤: 최종 점검 창(투명도 80%) */
+.final{position:fixed;inset:0;background:rgba(10,10,9,.8);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:16px;z-index:4;text-align:center}
+.fbox{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:560px}
+.fbox .ftag{margin:0;font-size:.85rem;letter-spacing:.08em;color:var(--ink-2)}
+.fbox h2{margin:0;font-size:clamp(1.5rem,4.4vw,2.4rem);font-weight:800;line-height:1.35}
+.fbox .ftime{margin:6px 0 0;font:var(--numw) clamp(3rem,12vw,7rem)/1 var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.fbox .fsub{margin:0;font-size:.9rem;color:var(--ink-2);line-height:1.6}
+.anamode .final .ftime{display:none}
+.acts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.acts button{font:500 .95rem var(--txt);color:var(--ink-2);background:transparent;border:1px solid var(--line);border-radius:999px;padding:10px 20px;cursor:pointer}
+.acts button.main{color:var(--bg);background:var(--ink);border-color:var(--ink)}
+
+/* 세로 화면·좁은 화면: 위아래로, 보조 정보는 시계 아래 */
+@media (max-width:820px),(orientation:portrait) and (max-width:1100px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:auto;min-height:100%}
+  .face{padding-block:16px}
+  .row{flex-direction:column;align-items:center;gap:21px}
+  .big{margin-bottom:-.065em}
+  .side{align-items:center;flex-direction:row;gap:14px;padding-bottom:0}
+  .big{font-size:clamp(4rem,24vw,13rem)}
+  .foot{gap:0;flex-wrap:nowrap;padding-top:6px}
+  .foot button{padding:7px clamp(3px,1.4vw,7px);font-size:clamp(.7rem,3.3vw,.78rem);white-space:nowrap}
+  .analog{flex-direction:column;gap:18px}
+  .dial{width:min(84vw,50vh,480px)}
+  /* 시험 중(시작 후): 시계와 세트 버튼이 한 화면에 — 스크롤 없음 */
+  .app:not(.idle){height:100%;min-height:0;overflow:hidden;padding:10px 12px;gap:10px;grid-template-rows:auto minmax(0,1fr)}
+  .app:not(.idle) .face{padding-block:4px;gap:10px}
+  .app:not(.idle) .row{gap:12px}
+  .app:not(.idle) .big{font-size:clamp(3rem,min(22vw,10.5vh),13rem)}
+  .app:not(.idle) .bar{display:none}
+  .app:not(.idle) .analog{flex-direction:row;gap:16px}
+  .app:not(.idle) .dial{width:min(84vw,36vh,460px)}
+  .app:not(.idle) .adig{flex-direction:column;gap:10px;align-items:flex-start}
+  .app:not(.idle) .adig div{align-items:flex-start}
+  .app:not(.idle) .sets{gap:8px}
+  .app:not(.idle) .set{min-height:0;padding:8px 4px;font-size:clamp(.95rem,4.2vw,1.2rem)}
+  .app:not(.idle) .set small{bottom:5px}
+  .app:not(.idle) .set .ord{top:5px;left:8px}
+  .adig{flex-direction:row;gap:clamp(18px,6vw,40px);align-items:flex-end}
+  .adig div{align-items:center}
+  .adig b{font-size:clamp(1.8rem,9vw,3rem)}
+  .adig .sub b{font-size:clamp(1.2rem,5.6vw,2rem)}
+}
+@media (prefers-reduced-motion:reduce){.set{transition:none}}
+.setup .auto{display:flex;gap:10px;align-items:flex-start;text-align:left;font-size:.85rem;color:var(--ink-2);line-height:1.5;margin-top:4px;cursor:pointer}
+.setup .auto input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:#ece5d3}
+.sendrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.sendrow button{font:700 1rem var(--txt);color:var(--bg);background:var(--ink);border:0;border-radius:999px;padding:13px 28px;cursor:pointer}
+.sendrow button:disabled{opacity:.5}
+.sendst{font-size:.88rem;color:var(--ink-2);line-height:1.5}
+</style>
+</head><body>
+
+<div class="app idle" id="app">
+  <section class="clock" id="clock">
+    <div class="face">
+      <span class="exam" id="examName"></span>
+      <div class="setup" id="setup">
+        <label for="examIn">시험 회차</label>
+        <input id="examIn" list="examList" type="text" autocomplete="off" placeholder="예: 상상 모의고사 시즌2 6회">
+        <datalist id="examList"></datalist>
+        <p id="examHint"></p>
+        <label for="nameIn">이름</label>
+        <input id="nameIn" type="text" autocomplete="off" placeholder="홍길동">
+        <label class="auto"><input type="checkbox" id="autoSend" checked><span>시험이 끝나면 기록을 선생님께 자동으로 보내요</span></label>
+      </div>
+      <div class="modes" id="modes" role="group" aria-label="시계 종류">
+        <button type="button" data-mode="digital">디지털</button>
+        <button type="button" data-mode="analog">아날로그 (수능 시계)</button>
+      </div>
+      <div class="analog" id="analog">
+        <svg class="dial" id="dial" viewBox="0 0 200 200" aria-label="수능 기준 아날로그 시계">
+          <circle class="face0" cx="100" cy="100" r="96"/>
+          <circle class="rim" cx="100" cy="100" r="96"/>
+          <g id="dTicks"></g>
+          <line class="hh" id="hh" x1="100" y1="112" x2="100" y2="52"/>
+          <line class="mh" id="mh" x1="100" y1="114" x2="100" y2="22"/>
+          <line class="sh" id="sh" x1="100" y1="122" x2="100" y2="12"/>
+          <circle class="cap" cx="100" cy="100" r="4.4"/>
+          <circle class="cap2" cx="100" cy="100" r="1.8"/>
+        </svg>
+      </div>
+      <div class="row">
+        <span class="big" id="remain" aria-label="남은 시간">80<span class="bc">:</span>00</span>
+        <div class="side"><span class="el" id="elapsed">0분 경과</span><span class="cs" id="csat">수능 기준 8:40</span></div>
+      </div>
+      <div class="bar"><i id="prog"></i></div>
+      <button class="startbtn" id="start" type="button">시작</button>
+      <p class="notice" id="notice">내부 테스트 버전 · 링크와 화면을 외부에 공유하지 마세요</p>
+      <div class="kakao" id="kakao" hidden>
+        <p><b>카카오톡 안에서 열려 있어요.</b> 전체 화면으로 쓰려면 크롬이나 사파리로 열어 주세요.</p>
+        <p class="how" id="kHow"></p>
+        <a class="kbtn" id="kOpen" href="#">크롬·사파리로 열기</a>
+      </div>
+    </div>
+    <div class="foot">
+      <button id="pause" type="button" hidden>잠시 멈춤</button>
+      <button id="end" type="button">종료·기록</button>
+      <button id="reset" type="button">처음부터</button>
+      <button id="mode" type="button">아날로그 시계</button>
+      <button id="fs" type="button">전체 화면</button>    </div>
+  </section>
+  <section class="sets" id="sets" aria-label="세트 버튼"></section>
+</div>
+
+<div class="final" id="final" hidden>
+  <div class="fbox">
+    <p class="ftag">모든 세트를 끝냈어요</p>
+    <h2>최종 문항 점검 및<br>OMR 작성</h2>
+    <p class="ftime" id="fRemain"></p>
+    <p class="fsub" id="fSub">남은 시간 · 시계는 계속 흐르고 있어요</p>
+    <button class="startbtn" id="fEnd" type="button"><span>시험 종료</span></button>
+    <button class="linkbtn" id="fBack" type="button">세트 버튼 다시 보기</button>
+  </div>
+</div>
+
+<div class="sheet" id="confirm" hidden>
+  <div class="card">
+    <h2>처음부터 다시 할까요?</h2>
+    <p>시간, 클리어 기록, OMR 답과 채점 결과가 모두 지워집니다.</p>
+    <div class="acts"><button id="cNo" type="button">취소</button><button class="main" id="cYes" type="button">지우기</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="report" hidden>
+  <div class="card">
+    <h2>풀이 기록</h2>
+    <p id="rSum"></p>
+    <div class="tot" id="rTot"></div>
+    <div class="sec">풀이 순서와 시간 배분</div>
+    <p class="flow" id="rFlow"></p>
+    <div class="trackwrap"><div class="track" id="rTrack"></div><div class="limit" id="rLimit" hidden><span>80분</span></div></div>
+    <div class="scale" id="rScale"></div>
+    <div class="sec">세트별 기록</div>
+    <table><thead><tr><th>순서</th><th>세트</th><th class="n">소요</th><th class="n">끝낸 시각</th><th class="n" id="thOk" hidden>정답</th></tr></thead><tbody id="rBody"></tbody></table>
+    <div class="sec">OMR 답 입력</div>
+    <div class="subj" role="group" aria-label="선택 과목">
+      <span>선택 과목</span>
+      <button type="button" id="subjH" data-s="hwa">화법과 작문</button>
+      <button type="button" id="subjE" data-s="eon">언어와 매체</button>
+    </div>
+    <div class="pad" id="pad">
+      <div class="padHead"><span class="padQ" id="padQ">1번</span><span class="padSet" id="padSet"></span><span class="padCnt" id="padCnt">0/45</span></div>
+      <div class="padKeys" id="padKeys">
+        <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="4">4</button><button type="button" data-k="5">5</button>
+      </div>
+      <div class="padNav"><button type="button" id="padPrev">◀ 이전</button><button type="button" id="padClear">지우기</button><button type="button" id="padNext">다음 ▶</button></div>
+      <p class="hint" style="margin:6px 0 0">누르면 다음 문항으로 넘어가요. 아래 답안표에서도 고칠 수 있어요.</p>
+    </div>
+    <div id="omr" class="omr"></div>
+    <div class="gradeRow"><button class="main" id="grade" type="button">채점하기</button><span class="hint" id="gMsg">답을 모두 고른 뒤 눌러 주세요. 채점하면 답을 바꿀 수 없어요.</span></div>
+    <div id="gRes" class="gres" hidden></div>
+
+    <div class="sec">짧은 설문</div>
+    <p class="q">가장 어려웠던 세트</p>
+    <div class="chips" id="hardSet"></div>
+    <p class="q"><label for="hardQ">가장 어려웠던 문항 번호</label></p>
+    <input id="hardQ" class="field" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 17, 32">
+    <p class="q"><label for="memo">하고 싶은 말 (선택)</label></p>
+    <textarea id="memo" class="field" rows="2" placeholder="시간이 부족했던 이유, 헷갈린 점 등"></textarea>
+
+    <div class="sec">① 내 기록 저장</div>
+    <div class="gradeRow"><button class="main" id="saveImg" type="button">결과 이미지 저장</button><span class="hint" id="sMsg">채점과 설문을 마친 뒤 먼저 저장해 두세요. 저장한 다음 아래에서 선생님께 보내요.</span></div>
+    <div id="imgBox" class="imgbox" hidden><p class="hint">이미지를 길게 눌러 '사진에 저장'을 고르세요.</p><img id="imgOut" alt="모의고사 결과 이미지"></div>
+
+    <div class="sec">② 선생님께 보내기</div>
+    <div class="send">
+      <label for="sName">이름</label>
+      <input id="sName" type="text" autocomplete="off" placeholder="홍길동">
+    </div>
+    <div class="sendrow"><button type="button" id="sendBtn">선생님께 보내기</button><span class="sendst" id="sendSt"></span></div>
+    <p class="hint" id="cMsg"></p>
+    <p class="hint"><a class="linkbtn" id="sendLink" href="#" target="_blank" rel="noopener">전송이 안 되면 설문으로 보내기</a> · <button type="button" class="linkbtn" id="copy">결과 복사하기</button></p>
+    <textarea id="cTxt" readonly hidden></textarea>
+
+    <div class="acts"><button id="rClose" type="button">닫기</button></div>
+  </div>
+</div>
+
+<script>
+const LIMIT = 80*60*1000;
+const SETS = [["독서론","독서론"],["독서 세트 1","독서<br>세트 1"],["독서 세트 2","독서<br>세트 2"],["독서 세트 3","독서<br>세트 3"],
+  ["현대운문","현대운문<br>갈래복합"],["현대소설","현대소설"],["고전산문","고전산문"],["고전시가","고전시가"],["선택","선택"]];
+// 등록된 회차 목록(이름·세트별 문항 범위만). 정답은 이 페이지에 없고 구글 시트 '840 회차' 탭에만 있음.
+// 시작할 때 시트에서 받아 오고, 인터넷이 없으면 지난번에 받아 둔 목록을 씀
+let EXAMS = (()=>{ try{ return JSON.parse(localStorage.getItem("nmg-mock-clock-v1-exams"))||[]; }catch(e){ return []; } })();
+const simple = t => (t||"").replace(/\s+/g,"").toLowerCase();
+function examFor(name){
+  const t=(name||"").trim(), hit=EXAMS.find(x=>simple(x.name)===simple(t));
+  return hit ? {name:hit.name, total:45, ranges:hit.ranges||{}, gradable:hit.gradable!==false} : {name:t, total:45, ranges:{}, gradable:false};
+}
+// 구글 설문(미리 채우기) — 원장님이 만든 '학생 기록 전송'(이름·기록). 회차·데이터는 기록 끝에 붙임
+const FORM = { url:"https://docs.google.com/forms/d/e/1FAIpQLSdHDHoTlpLOPK1kukZOwNWelMUYvZTlvMF3BTMWR9_g1Ch9IQ/viewform",
+  name:"entry.1603962208", text:"entry.130194786", exam:"", data:"",
+  score:"", hardSet:"", hardQ:"", memo:"" };
+const SUBJ = {hwa:"화법과 작문", eon:"언어와 매체"};
+const KEY = "nmg-mock-clock-v1";
+let S = norm(load()) || fresh();
+function fresh(){ return {gk:null, g3:[], rid:"", sentAt:"", exam:"", acc:0, since:null, clears:{}, omr:{}, subj:"", graded:false, hardSet:"", hardQ:"", memo:"", finalOpen:false}; }
+function norm(s){ if(!s) return null; const old=!("exam" in s); const f=fresh(); for(const k in f) if(!(k in s)) s[k]=f[k];
+  if(old && (s.acc>0 || s.since)) s.exam="이감 파이널Ⅱ 5차"; return s; }
+let EXAM = examFor(S.exam);
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+const now = () => S.acc + (S.since ? Date.now()-S.since : 0);
+const running = () => S.since !== null;
+const fmt = ms => { const t=Math.floor(Math.abs(ms)/1000); return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0"); };
+
+const $ = id => document.getElementById(id);
+const fmtH = ms => fmt(ms).replace(":", '<span class="bc">:</span>');
+const setH = (id, h) => { const el=$(id); if(el.innerHTML!==h) el.innerHTML=h; };
+const setsEl = $("sets");
+SETS.forEach(([n,label])=>{
+  const b=document.createElement("button");
+  b.type="button"; b.className="set"; b.dataset.name=n;
+  b.innerHTML='<span class="ord"></span><span><span class="name">'+label+'</span><span class="rng"></span></span><small></small>';
+  b.addEventListener("click",()=>toggle(n));
+  setsEl.appendChild(b);
+});
+
+function ordered(){ return Object.entries(S.clears).sort((a,b)=>a[1]-b[1]); }
+function durations(){ let prev=0; return ordered().map(([n,t],i)=>{ const d=t-prev; prev=t; return {n,t,d,i:i+1}; }); }
+
+const allDone = () => Object.keys(S.clears).length===SETS.length;
+// 마지막 세트를 눌러도 시험은 끝나지 않음: 반투명 '최종 점검' 창이 뜨고, 시계는 계속 흐름
+function toggle(n){
+  if(!running() && now()===0) return;
+  if(n in S.clears) delete S.clears[n]; else S.clears[n]=now();
+  S.finalOpen = allDone();
+  save(); paint();
+}
+// 모든 세트를 끝낸 뒤 시험 종료까지(최종 점검·OMR 작성) 쓴 시간
+function finalMs(){ if(!allDone()) return 0; const last=Math.max(...Object.values(S.clears)); return Math.max(0, now()-last); }
+function start(){
+  if(!running() && now()===0){
+    S.exam=($("examIn").value||"").trim();
+    if(!S.exam){ $("examHint").textContent="시험 회차를 먼저 적어 주세요."; $("examIn").focus(); return; }
+    if(!($("nameIn").value||"").trim()){ $("examHint").textContent="이름을 먼저 적어 주세요."; $("nameIn").focus(); return; }
+    S.auto = $("autoSend").checked;
+    EXAM=examFor(S.exam); S.exam=EXAM.name;
+  }
+  if(!running()){ S.since=Date.now(); save(); lock(); } paint();
+}
+function pause(){ if(running()){ S.acc=now(); S.since=null; save(); } paint(); }
+
+// 아날로그 시계: 눈금·숫자 만들기
+(function(){
+  const NS="http://www.w3.org/2000/svg", g=$("dTicks");
+  for(let i=0;i<60;i++){
+    const a=i*6*Math.PI/180, h=i%5===0, r1=h?84:89, r2=93;
+    const l=document.createElementNS(NS,"line");
+    l.setAttribute("x1",100+r1*Math.sin(a)); l.setAttribute("y1",100-r1*Math.cos(a));
+    l.setAttribute("x2",100+r2*Math.sin(a)); l.setAttribute("y2",100-r2*Math.cos(a));
+    l.setAttribute("class", h?"tk h":"tk"); g.appendChild(l);
+  }
+  for(let n=1;n<=12;n++){
+    const a=n*30*Math.PI/180, t=document.createElementNS(NS,"text");
+    t.setAttribute("x",100+71*Math.sin(a)); t.setAttribute("y",100-71*Math.cos(a));
+    t.textContent=n; g.appendChild(t);
+  }
+})();
+let MODE="digital";
+try{ MODE = localStorage.getItem(KEY+"-mode")==="analog" ? "analog" : "digital"; }catch(e){}
+function setMode(m){
+  MODE=m; try{ localStorage.setItem(KEY+"-mode", m); }catch(e){}
+  applyMode(); paint();
+}
+function applyMode(){
+  $("clock").classList.toggle("ana", MODE==="analog");
+  document.body.classList.toggle("anamode", MODE==="analog");
+  $("modes").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.mode===MODE));
+  $("mode").textContent = MODE==="analog" ? "디지털 시계" : "아날로그 시계";
+}
+$("modes").addEventListener("click", ev=>{ const b=ev.target.closest("button"); if(b) setMode(b.dataset.mode); });
+$("mode").onclick = ()=> setMode(MODE==="analog" ? "digital" : "analog");
+applyMode();
+const rot=(id,deg)=>$(id).setAttribute("transform",`rotate(${deg} 100 100)`);
+
+function paint(){
+  const e=now(), r=LIMIT-e, em=Math.floor(e/60000);
+  if(MODE==="analog"){
+    const ts=8*3600+40*60+Math.floor(e/1000), hh=Math.floor(ts/3600)%12, mm=Math.floor(ts/60)%60, ss=ts%60;
+    rot("hh",(hh+mm/60+ss/3600)*30); rot("mh",(mm+ss/60)*6); rot("sh",ss*6);
+  }
+  setH("remain", fmtH(r>=0 ? r : 0));
+  $("elapsed").textContent = r<0 ? `80분 경과 (+${Math.floor(-r/60000)}분)` : `${em}분 경과`;
+  const cm=8*60+40+em;
+  $("csat").textContent = `수능 기준 ${Math.floor(cm/60)}:${String(cm%60).padStart(2,"0")}`;
+  $("clock").classList.toggle("over", r<0);
+  $("prog").style.width = Math.min(100,e/LIMIT*100)+"%";
+
+  const fresh0 = !running() && e===0, paused = !running() && e>0;
+  $("setup").hidden = !fresh0;
+  $("examName").hidden = fresh0;
+  if($("examName").textContent!==EXAM.name) $("examName").textContent = EXAM.name;
+  $("final").hidden = !(running() && allDone() && S.finalOpen);
+  if(!$("final").hidden){
+    setH("fRemain", fmtH(r>=0 ? r : 0));
+    const fs = r<0 ? `시험 시간 80분이 지났어요 (+${Math.floor(-r/60000)}분)` : "남은 시간 · 시계는 계속 흐르고 있어요";
+    if($("fSub").textContent!==fs) $("fSub").textContent=fs;
+  }
+  $("app").classList.toggle("idle", fresh0);
+  $("start").hidden = !(fresh0 || paused);
+  const sl = paused ? "이어서 풀기" : "시작";
+  if($("start").textContent!==sl) $("start").innerHTML = `<span>${sl}</span>`;
+  $("pause").hidden = !running();
+  $("notice").hidden = !fresh0;
+  $("modes").hidden = !fresh0;
+  if(running()) $("kakao").hidden = true;
+
+  const ds = Object.fromEntries(durations().map(x=>[x.n,x]));
+  setsEl.querySelectorAll(".set").forEach(b=>{
+    const x=ds[b.dataset.name];
+    b.classList.toggle("done",!!x);
+    b.querySelector(".ord").textContent = x ? x.i : "";
+    { const rg=EXAM.ranges[b.dataset.name], el=b.querySelector(".rng"), t=rg?rg+"번":""; if(el.textContent!==t) el.textContent=t; }
+    { const sh = x ? fmtH(x.d)+" 소요" : ""; const sm=b.querySelector("small"); if(sm.innerHTML!==sh) sm.innerHTML=sh; }
+    b.setAttribute("aria-pressed", x ? "true":"false");
+  });
+}
+
+function showReport(){
+  const ds=durations(), e=now();
+  $("rSum").textContent = ds.length
+    ? `${ds.length}개 세트 클리어 · 총 ${fmt(e)} 경과` + (e>LIMIT ? ` (제한 시간 ${fmt(e-LIMIT)} 초과)` : ` (남은 시간 ${fmt(LIMIT-e)})`)
+      + (allDone() ? ` · 최종 점검 ${fmt(finalMs())}` : "")
+    : "아직 클리어한 세트가 없습니다.";
+  // 영역 합계
+  const sum = {dok:0, mun:0, sel:0}, cnt={dok:0,mun:0,sel:0};
+  ds.forEach(x=>{ sum[AREA(x.n)]+=x.d; cnt[AREA(x.n)]++; });
+  const TOT = {dok:4, mun:4, sel:1};
+  $("rTot").innerHTML = ["dok","mun","sel"].map(a=>
+    `<div><span><i class="sw a-${a}"></i>${AN[a]} 총 소요</span><b>${fmt(sum[a])}</b><span>${cnt[a]}/${TOT[a]} 세트</span></div>`).join("");
+  // 풀이 흐름(연속된 같은 영역은 하나로)
+  const flow=[]; ds.forEach(x=>{ const a=AREA(x.n); if(!flow.length || flow[flow.length-1].a!==a) flow.push({a,d:0}); flow[flow.length-1].d+=x.d; });
+  $("rFlow").textContent = flow.length ? "풀이 흐름: " + flow.map(f=>`${AN[f.a]} ${fmt(f.d)}`).join("  →  ") + (allDone()&&finalMs()>0 ? `  →  최종 점검 ${fmt(finalMs())}` : "") : "";
+  // 막대: 80분(초과 시 실제 시간) 기준
+  const span = Math.max(LIMIT, e);
+  const restMs = Math.max(0, span - (ds.length ? ds[ds.length-1].t : 0));
+  const short = n => n.replace("독서 세트 ","독서").replace("독서론","독서론");
+  $("rTrack").innerHTML = ds.map(x=>{
+    const w = x.d/span*100;
+    const lab = w>7 ? `<span>${short(x.n)}</span><em>${fmt(x.d)}</em>` : (w>3.5 ? `<em>${Math.round(x.d/60000)}′</em>` : "");
+    return `<div class="seg a-${AREA(x.n)}" style="flex:0 0 ${w}%" title="${x.n} ${fmt(x.d)}">${lab}</div>`;
+  }).join("") + (restMs>0 ? `<div class="seg rest" style="flex:1 1 0">${restMs/span>.08 ? (allDone() ? "최종 점검" : ds.length && e>=LIMIT ? "" : "미사용·미완") : ""}</div>` : "");
+  $("rLimit").hidden = !(span > LIMIT);
+  $("rLimit").style.left = (LIMIT/span*100) + "%";
+  const step = span/4;
+  $("rScale").innerHTML = [0,1,2,3,4].map(i=>`<span>${Math.round(step*i/60000)}분</span>`).join("");
+
+  renderTable();
+  QP = firstBlank(); renderOMR(); renderSurvey(); updateSend();
+  $("report").hidden=false;
+}
+
+// ── 문항·세트 계산 ──
+const rangeOf = n => { const r=EXAM.ranges[n]; if(!r) return null; const [a,b]=r.split("~").map(Number); return [a,b]; };
+const setOfQ = q => SETS.map(s=>s[0]).find(n=>{ const r=rangeOf(n); return r && q>=r[0] && q<=r[1]; });
+const AREA = n => n.startsWith("독서") ? "dok" : n==="선택" ? "sel" : "mun";
+const AN = {dok:"독서", mun:"문학", sel:"선택"};
+// 채점 때 시트에서 받은 정답(S.gk: 1~45번)과 3점 문항(S.g3)
+function keyOf(q){ return S.gk ? +S.gk[q-1] : 0; }
+function pts(q){ return (S.g3||[]).includes(q) ? 3 : 2; }
+function result(){
+  if(!S.graded) return null;
+  const per={}, area={dok:[0,0],mun:[0,0],sel:[0,0]}, wrong=[]; let ok=0, score=0;
+  for(let q=1;q<=EXAM.total;q++){
+    const n=setOfQ(q), good = S.omr[q]===keyOf(q);
+    per[n]=per[n]||[0,0]; per[n][1]++; area[AREA(n)][1]++;
+    if(good){ ok++; score+=pts(q); per[n][0]++; area[AREA(n)][0]++; } else wrong.push(q);
+  }
+  return {ok, score, per, area, wrong};
+}
+function sumTimes(){
+  const ds=durations(), sum={dok:0,mun:0,sel:0}; ds.forEach(x=>sum[AREA(x.n)]+=x.d);
+  const flow=[]; ds.forEach(x=>{ const a=AREA(x.n); if(!flow.length||flow[flow.length-1].a!==a) flow.push({a,d:0}); flow[flow.length-1].d+=x.d; });
+  return {ds, sum, flow};
+}
+
+function renderTable(){
+  const {ds}=sumTimes(), R=result();
+  const left = SETS.map(s=>s[0]).filter(n=>!(n in S.clears));
+  const okc = n => R && R.per[n] ? `<td class="n">${R.per[n][0]}/${R.per[n][1]}</td>` : (R?`<td class="n"></td>`:"");
+  $("thOk").hidden = !R;
+  $("rBody").innerHTML = ds.map(x=>`<tr><td>${x.i}</td><td>${x.n}</td><td class="n">${fmt(x.d)}</td><td class="n">${fmt(x.t)}</td>${okc(x.n)}</tr>`).join("")
+    + left.map(n=>`<tr style="color:var(--ink-3)"><td>–</td><td>${n}</td><td class="n">미완</td><td class="n"></td>${okc(n)}</tr>`).join("");
+}
+
+// ── OMR ──
+const CIRC="①②③④⑤";
+function renderOMR(){
+  const box=$("omr"); box.classList.toggle("locked", S.graded);
+  $("subjH").classList.toggle("on", S.subj==="hwa"); $("subjE").classList.toggle("on", S.subj==="eon");
+  // 등록된 회차는 세트별로, 아니면 공통 1~17 / 18~34 / 선택 35~45로 묶음
+  const reg = SETS.map(s=>s[0]).filter(n=>rangeOf(n)).sort((a,b)=>rangeOf(a)[0]-rangeOf(b)[0]);
+  const groups = reg.length ? reg.map(n=>[n,...rangeOf(n)]) : [["공통",1,17],["공통",18,34],["선택",35,45]];
+  box.innerHTML = groups.map(([n,a,b])=>{
+    let rows="";
+    for(let q=a;q<=b;q++){
+      const mine=S.omr[q]||0, k=S.graded?keyOf(q):0, cls=S.graded?(mine===k?"ok":"ng"):"";
+      rows += `<div class="orow ${cls}"><span class="no">${q}</span>` +
+        [1,2,3,4,5].map(c=>`<button type="button" data-q="${q}" data-c="${c}" class="${mine===c?"on":""}${S.graded&&c===k&&mine!==k?" key":""}" aria-label="${q}번 ${c}번"${mine===c?' aria-pressed="true"':''}>${c}</button>`).join("") + `</div>`;
+    }
+    const nm = n==="선택" ? `선택 ${S.subj?"("+SUBJ[S.subj]+") ":""}` : n==="공통" ? "공통 " : n.replace("독서 세트","독서");
+    return `<div class="og"><h4>${nm} · ${a}~${b}번</h4>${rows}</div>`;
+  }).join("");
+  renderPad();
+  const R=result();
+  $("grade").hidden = S.graded || !EXAM.gradable;
+  $("gMsg").textContent = !EXAM.gradable ? "정답이 등록되지 않은 회차라 자동 채점은 없어요. 고른 답은 선생님께 그대로 전달돼요." :
+    S.graded ? "채점이 끝났어요. ✕ 문항은 테두리 표시가 정답이에요." : "답을 모두 고른 뒤 눌러 주세요. 채점하면 답을 바꿀 수 없어요.";
+  $("gRes").hidden = !R;
+  if(R) $("gRes").innerHTML = `<span>원점수</span><b>${R.score}점</b><span>${EXAM.total}문항 중 ${R.ok}개 정답</span>`+
+    `<span>독서 ${R.area.dok[0]}/${R.area.dok[1]} · 문학 ${R.area.mun[0]}/${R.area.mun[1]} · 선택(${SUBJ[S.subj]}) ${R.area.sel[0]}/${R.area.sel[1]}</span>`+
+    `<span>틀린 문항: ${R.wrong.length? R.wrong.map(q=>pts(q)===3?q+"(3점)":q).join(", ") : "없음"}</span>`;
+}
+// ── 빠른 입력(키패드) ──
+let QP = 1;
+function firstBlank(){ for(let q=1;q<=EXAM.total;q++) if(!S.omr[q]) return q; return EXAM.total; }
+function renderPad(){
+  $("pad").hidden = S.graded;
+  if(S.graded) return;
+  const n=setOfQ(QP), filled=Object.values(S.omr).filter(Boolean).length;
+  $("padQ").textContent = QP+"번";
+  const n2 = n || (QP>=35 ? "선택" : "공통");
+  $("padSet").textContent = n2 + (n2==="선택" && S.subj ? " · "+SUBJ[S.subj] : "");
+  $("padCnt").textContent = `${filled}/${EXAM.total}`;
+  $("padKeys").querySelectorAll("button").forEach(b=>b.classList.toggle("on", S.omr[QP]===+b.dataset.k));
+  document.querySelectorAll(".orow").forEach(r=>r.classList.remove("cur"));
+  const cur=document.querySelector(`.orow button[data-q="${QP}"]`); if(cur) cur.parentElement.classList.add("cur");
+}
+$("padKeys").addEventListener("click", ev=>{
+  const b=ev.target.closest("button[data-k]"); if(!b||S.graded) return;
+  S.omr[QP]=+b.dataset.k; save(); if(QP<EXAM.total) QP++; renderOMR(); updateSend();
+});
+$("padPrev").onclick=()=>{ if(QP>1) QP--; renderPad(); };
+$("padNext").onclick=()=>{ if(QP<EXAM.total) QP++; renderPad(); };
+$("padClear").onclick=()=>{ if(S.graded) return; S.omr[QP]=0; save(); renderOMR(); updateSend(); };
+$("omr").addEventListener("click", ev=>{
+  const b=ev.target.closest("button[data-q]"); if(!b || S.graded) return;
+  const q=+b.dataset.q, c=+b.dataset.c; S.omr[q] = S.omr[q]===c ? 0 : c; QP = S.omr[q] && q<EXAM.total ? q+1 : q; save(); renderOMR(); updateSend();
+});
+["subjH","subjE"].forEach(id=>$(id).onclick=()=>{ if(S.graded) return; S.subj=$(id).dataset.s; save(); renderOMR(); updateSend(); });
+$("grade").onclick = async ()=>{
+  if(!EXAM.gradable || $("grade").disabled) return;
+  if(!S.subj){ $("gMsg").textContent="선택 과목(화법과 작문 / 언어와 매체)을 먼저 골라 주세요."; return; }
+  const blank=[]; for(let q=1;q<=EXAM.total;q++) if(!S.omr[q]) blank.push(q);
+  if(blank.length && $("grade").dataset.warn!=="1"){ $("grade").dataset.warn="1";
+    $("gMsg").textContent=`비어 있는 문항이 ${blank.length}개 있어요(${blank.slice(0,8).join(", ")}${blank.length>8?" …":""}). 그대로 채점하려면 한 번 더 누르세요.`; return; }
+  // 정답은 시트에서 받아 옴(페이지에는 정답이 없음)
+  $("grade").disabled=true; $("gMsg").textContent="채점하는 중…";
+  let j=null;
+  try{ const r=await fetch(SEND_URL, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({action:"grade", exam:EXAM.name, subj:S.subj})}); j=await r.json(); }catch(e){}
+  $("grade").disabled=false;
+  if(!j || !j.ok || !Array.isArray(j.key) || j.key.length!==EXAM.total){
+    $("gMsg").textContent = !j ? "인터넷에 연결되지 않아 채점하지 못했어요. 연결된 뒤 다시 눌러 주세요." : "이 회차의 정답이 아직 다 등록되지 않았어요. 답안은 선생님께 그대로 전달돼요."; return; }
+  S.gk=j.key; S.g3=j.three||[]; S.graded=true; save(); renderOMR(); renderTable(); updateSend(); autoSend("채점 완료");
+};
+
+// ── 설문 ──
+function renderSurvey(){
+  $("hardSet").innerHTML = SETS.map(s=>`<button type="button" data-n="${s[0]}" class="${S.hardSet===s[0]?"on":""}">${s[0]}</button>`).join("");
+  $("hardQ").value=S.hardQ; $("memo").value=S.memo;
+}
+$("hardSet").addEventListener("click", ev=>{ const b=ev.target.closest("button[data-n]"); if(!b) return;
+  S.hardSet = S.hardSet===b.dataset.n ? "" : b.dataset.n; save(); renderSurvey(); updateSend(); });
+$("hardQ").addEventListener("input", ()=>{ S.hardQ=$("hardQ").value; save(); updateSend(); });
+$("memo").addEventListener("input", ()=>{ S.memo=$("memo").value; save(); updateSend(); });
+
+// ── 보낼 내용 ──
+function buildText(){
+  const e=now(), {ds,sum,flow}=sumTimes(), R=result();
+  const left = SETS.map(s=>s[0]).filter(n=>!(n in S.clears));
+  return [`[840 시계 기록] ${EXAM.name}`, `이름: ${($("sName").value||"").trim() || "(이름 없음)"}`,
+    R ? `원점수 ${R.score}점 · 정답 ${R.ok}/${EXAM.total} (독서 ${R.area.dok[0]}/${R.area.dok[1]} · 문학 ${R.area.mun[0]}/${R.area.mun[1]} · 선택 ${R.area.sel[0]}/${R.area.sel[1]}, ${SUBJ[S.subj]})` : "채점 안 함",
+    R ? `틀린 문항: ${R.wrong.map(q=>pts(q)===3?q+"(3점)":q).join(", ")||"없음"}` : "",
+    `총 ${fmt(e)}` + (e>LIMIT ? ` (${fmt(e-LIMIT)} 초과)` : ` (남은 시간 ${fmt(LIMIT-e)})`),
+    `독서 ${fmt(sum.dok)} · 문학 ${fmt(sum.mun)} · 선택 ${fmt(sum.sel)}`,
+    flow.length ? `흐름: ${flow.map(f=>`${AN[f.a]} ${fmt(f.d)}`).join(" → ")}` : "",
+    ...ds.map(x=>`${x.i}. ${x.n} ${fmt(x.d)}` + (R&&R.per[x.n]?` · ${R.per[x.n][0]}/${R.per[x.n][1]}`:"")),
+    left.length ? `미완: ${left.join(", ")}` : `최종 점검·OMR ${fmt(finalMs())}`,
+    S.hardSet ? `가장 어려웠던 세트: ${S.hardSet}` : "",
+    S.hardQ.trim() ? `가장 어려웠던 문항: ${S.hardQ.trim()}` : "",
+    S.memo.trim() ? `한마디: ${S.memo.trim()}` : ""].filter(Boolean).join("\n");
+}
+// 표(구글 시트 '정리' 탭)용 한 줄 — 칸 순서는 TABLE_COLS와 같아야 함. 값에 '|'는 쓰지 않음
+const TABLE_ORDER = ["독서론","독서 세트 1","독서 세트 2","독서 세트 3","현대소설","현대운문","고전시가","고전산문","선택"];
+const TABLE_COLS = ["회차","선택 과목","원점수","정답 수","독서 정답(17)","문학 정답(17)","선택 정답(11)","틀린 문항",
+  "총 시간(분)","독서 시간(분)","문학 시간(분)","선택 시간(분)","풀이 순서",
+  ...TABLE_ORDER.map(n=>n+" 시간(분)"), ...TABLE_ORDER.map(n=>n+" 정답"),
+  "가장 어려웠던 세트","가장 어려웠던 문항","한마디","답안(1~45)","최종 점검(분)"];
+function buildData(){
+  const {ds,sum}=sumTimes(), R=result(), mins=ms=>(Math.round(ms/6000)/10).toFixed(1);
+  const t={}; ds.forEach(x=>t[x.n]=x.d);
+  let ans=""; for(let q=1;q<=EXAM.total;q++){ ans+=(S.omr[q]||0); if(q%5===0 && q<EXAM.total) ans+=" "; }
+  const clean=v=>String(v).replace(/[|\n\r]+/g," ").trim();
+  const row=[EXAM.name, S.subj?SUBJ[S.subj]:"",
+    R?R.score:"", R?R.ok:"", R?R.area.dok[0]:"", R?R.area.mun[0]:"", R?R.area.sel[0]:"", R?R.wrong.join(", "):"",
+    mins(now()), mins(sum.dok), mins(sum.mun), mins(sum.sel), ds.map(x=>x.n).join(" → "),
+    ...TABLE_ORDER.map(n=>n in t ? mins(t[n]) : ""), ...TABLE_ORDER.map(n=>R&&R.per[n]?R.per[n][0]:""),
+    S.hardSet, S.hardQ, S.memo, "답 "+ans, allDone() ? mins(finalMs()) : ""];
+  return row.map(clean).join("|");
+}
+function formURL(){
+  const R=result(), p=new URLSearchParams({usp:"pp_url"});
+  p.set(FORM.name, ($("sName").value||"").trim());
+  if(FORM.exam) p.set(FORM.exam, EXAM.name);
+  p.set(FORM.text, buildText() + (FORM.data ? "" : "\n\n[표] " + buildData()));
+  if(FORM.data) p.set(FORM.data, buildData());
+  if(FORM.score && R) p.set(FORM.score, `${R.score}`);
+  if(FORM.hardSet && S.hardSet) p.set(FORM.hardSet, S.hardSet);
+  if(FORM.hardQ && S.hardQ.trim()) p.set(FORM.hardQ, S.hardQ.trim());
+  if(FORM.memo && S.memo.trim()) p.set(FORM.memo, S.memo.trim());
+  return FORM.url+"?"+[...p].map(([k,v])=>k+"="+encodeURIComponent(v)).join("&");
+}
+let IMG_SAVED=false;
+function updateSend(){ $("sendLink").href = formURL(); }
+$("sendLink").addEventListener("click", ev=>{
+  if(!($("sName").value||"").trim()){ ev.preventDefault(); $("cMsg").textContent="이름을 먼저 적어 주세요."; $("sName").focus(); return; }
+  updateSend();
+});
+
+// ── 선생님께 바로 보내기: 구글 Apps Script 웹 앱 → 시트 '840 기록' 탭. 같은 기록 ID는 한 줄로 덮어씀 ──
+// 배포한 웹 앱 주소(…/exec)를 넣으면 켜짐. 비어 있으면 설문 링크로만 보냄
+const SEND_URL = "";
+const OUTBOX = KEY+"-outbox";
+const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function payload(status){
+  if(!S.rid){ S.rid=newId(); save(); }
+  return JSON.stringify({id:S.rid, status, name:($("sName").value||"").trim(), exam:EXAM.name,
+    headers:TABLE_COLS, cols:buildData().split("|"), text:buildText(), sentAt:new Date().toISOString()});
+}
+function outbox(){ try{ return JSON.parse(localStorage.getItem(OUTBOX))||{}; }catch(e){ return {}; } }
+function setOutbox(o){ try{ localStorage.setItem(OUTBOX, JSON.stringify(o)); }catch(e){} }
+async function post(body){
+  try{
+    const r = await fetch(SEND_URL, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body, redirect:"follow"});
+    const j = await r.json(); return !!(j && j.ok);
+  }catch(e){
+    // 응답을 못 읽는 환경: 보내기만 하고 성공으로 봄(Apps Script는 받아서 기록함)
+    try{ await fetch(SEND_URL, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"}, body}); return navigator.onLine!==false; }
+    catch(e2){ return false; }
+  }
+}
+// 보내지 못한 기록은 저장해 두었다가 인터넷이 다시 연결되면 자동으로 보냄
+async function flush(){
+  if(!SEND_URL) return; const o=outbox();
+  for(const id of Object.keys(o)){ if(await post(o[id])){ const n=outbox(); delete n[id]; setOutbox(n); } }
+}
+window.addEventListener("online", flush);
+async function sendRecord(status, quiet){
+  const name=($("sName").value||"").trim();
+  if(!name){ if(!quiet){ $("cMsg").textContent="이름을 먼저 적어 주세요."; $("sName").focus(); } return false; }
+  if(!SEND_URL){ if(!quiet) $("sendSt").textContent="바로 보내기가 아직 연결되지 않았어요. 아래 '설문으로 보내기'를 눌러 주세요."; return false; }
+  const body=payload(status), id=S.rid;
+  $("sendBtn").disabled=true; $("sendSt").textContent="보내는 중…";
+  const ok = await post(body);
+  $("sendBtn").disabled=false;
+  if(ok){ S.sentAt=new Date().toTimeString().slice(0,5); save(); const o=outbox(); delete o[id]; setOutbox(o);
+    $("sendSt").textContent = status==="최종" ? `선생님께 보냈어요 (${S.sentAt}). 끝!` : `시간 기록을 보냈어요 (${S.sentAt}). 채점·설문을 마치고 '선생님께 보내기'를 한 번 더 눌러 주세요.`;
+  } else { const o=outbox(); o[id]=body; setOutbox(o);
+    $("sendSt").textContent="인터넷이 끊겨 아직 못 보냈어요. 연결되면 자동으로 다시 보내요. 급하면 아래 '설문으로 보내기'를 눌러 주세요."; }
+  return ok;
+}
+$("sendBtn").onclick = ()=> sendRecord("최종");
+function autoSend(status){ if(S.auto) sendRecord(status, true); }
+
+let wl=null;
+async function lock(){ try{ if("wakeLock" in navigator && !wl){ wl=await navigator.wakeLock.request("screen"); wl.addEventListener("release",()=>wl=null); } }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && running()) lock(); });
+
+$("start").onclick = start;
+function renderExamList(){ const dl=$("examList"); dl.innerHTML=""; EXAMS.forEach(x=>{ const o=document.createElement("option"); o.value=x.name; dl.appendChild(o); }); }
+renderExamList();
+async function loadExams(){
+  if(!SEND_URL) return;
+  try{
+    const r=await fetch(SEND_URL+"?action=exams"); const j=await r.json();
+    if(j && j.ok && Array.isArray(j.exams)){ EXAMS=j.exams; try{ localStorage.setItem(KEY+"-exams", JSON.stringify(EXAMS)); }catch(e){}
+      renderExamList(); if(!running() && now()===0){ EXAM=examFor($("examIn").value); examHint(); } else { EXAM=examFor(S.exam); } paint(); }
+  }catch(e){}
+}
+$("examIn").value = S.exam || (()=>{ try{ return localStorage.getItem(KEY+"-exam")||""; }catch(e){ return ""; } })();
+function examHint(){
+  const v=$("examIn").value.trim(), x=examFor(v);
+  $("examHint").textContent = !v ? "시험지 표지의 회차 이름을 적어 주세요." :
+    x.gradable ? "정답이 등록된 회차예요. 끝나면 바로 채점돼요." : "시간 기록과 답안이 선생님께 그대로 전달돼요. 채점은 선생님이 해요.";
+}
+$("examIn").addEventListener("input", ()=>{ const v=$("examIn").value; try{ localStorage.setItem(KEY+"-exam", v.trim()); }catch(e){}
+  EXAM=examFor(v); paint(); examHint(); });
+$("examIn").addEventListener("keydown", ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); $("examIn").blur(); start(); } });
+if(!S.exam) EXAM=examFor($("examIn").value);
+examHint();
+loadExams();
+$("fEnd").onclick = ()=>{ pause(); S.finalOpen=false; save(); showReport(); autoSend("시험 종료"); };
+$("fBack").onclick = ()=>{ S.finalOpen=false; save(); paint(); };
+$("pause").onclick = pause;
+$("end").onclick = ()=>{ pause(); S.finalOpen=false; save(); showReport(); autoSend("시험 종료"); };
+$("reset").onclick = ()=>{ $("confirm").hidden=false; };
+$("cNo").onclick = ()=>{ $("confirm").hidden=true; };
+$("cYes").onclick = ()=>{ const ex=S.exam; S=fresh(); S.exam=ex; save(); $("confirm").hidden=true; delete $("grade").dataset.warn; paint(); };
+$("rClose").onclick = ()=>{ $("report").hidden=true; };
+try{ $("sName").value = $("nameIn").value = localStorage.getItem(KEY+"-name") || ""; }catch(e){}
+["sName","nameIn"].forEach(id=>$(id).addEventListener("input", ()=>{ const v=$(id).value; $(id==="sName"?"nameIn":"sName").value=v;
+  try{ localStorage.setItem(KEY+"-name", v); }catch(e){} updateSend(); }));
+$("autoSend").checked = S.auto!==false;
+flush();
+$("copy").onclick = ()=>{
+  const t = buildText(), ta = $("cTxt");
+  const manual = ()=>{ ta.value=t; ta.hidden=false; ta.focus(); ta.select(); $("cMsg").textContent="아래 글을 길게 눌러 전체 선택한 뒤 복사해 주세요."; };
+  if(!($("sName").value||"").trim()){ $("cMsg").textContent="이름을 먼저 적어 주세요."; $("sName").focus(); return; }
+  try{
+    navigator.clipboard.writeText(t).then(()=>{ $("cMsg").textContent="복사했어요. 단톡방이나 선생님께 붙여넣어 보내 주세요."; ta.hidden=true; }, manual);
+  }catch(e){ manual(); }
+};
+// 카카오톡 안 브라우저 감지 → 외부 브라우저 안내(전체 화면이 막혀 있음)
+// 아이폰은 어느 브라우저에서도 전체 화면 기능이 없음(사파리 포함) → 안내·전체 화면 버튼 없이 그대로 사용.
+// 시험 중 화면은 전체 화면 없이도 한 화면에 맞춰 둠.
+const PAGE_URL = location.href.split("#")[0];
+const STANDALONE = matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone===true;
+const UA = navigator.userAgent||"", IN_KAKAO = /KAKAOTALK/i.test(UA), IS_IOS = /iPhone|iPad|iPod/i.test(UA), IS_IPHONE = /iPhone|iPod/i.test(UA);
+// 아이폰: 사파리는 전체 화면 기능이 없음 → 홈 화면에 추가해서 열면 주소창 없이 꽉 찬 화면이 됨
+if(IS_IPHONE || STANDALONE) $("fs").hidden = true;
+if(IS_IPHONE && !STANDALONE && !IN_KAKAO){
+  $("kakao").hidden=false;
+  $("kakao").querySelector("p").innerHTML="<b>전체 화면으로 쓰려면 홈 화면에 추가해 주세요.</b> 다음부터 홈 화면의 '840 시계' 아이콘으로 열면 주소창 없이 꽉 찬 화면이 돼요.";
+  $("kHow").textContent="사파리 아래쪽 공유(↑) → '홈 화면에 추가' → 추가";
+  $("kOpen").hidden=true;
+}
+if(IN_KAKAO){
+  $("kakao").hidden=false;
+  $("kOpen").href = "kakaotalk://web/openExternal?url="+encodeURIComponent(PAGE_URL);
+  $("kHow").textContent = IS_IOS ? "버튼이 안 되면: 오른쪽 아래 공유(↗) → 'Safari로 열기'. 사파리에서 '홈 화면에 추가'하면 전체 화면이 돼요." : "버튼이 안 되면: 오른쪽 위 ⋮ → '다른 브라우저로 열기'";
+}
+$("fs").onclick = async ()=>{
+  try{ document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); }
+  catch(e){ $("kakao").hidden=false; if(!IN_KAKAO){ $("kakao").querySelector("p").innerHTML="<b>이 화면에서는 전체 화면이 막혀 있어요.</b> 크롬이나 사파리에서 열면 쓸 수 있어요."; $("kOpen").hidden=true; $("kHow").textContent = ""; } }
+};
+document.addEventListener("fullscreenchange",()=>{ const on=!!document.fullscreenElement; $("fs").textContent = on ? "전체 화면 끄기" : "전체 화면"; $("fs").classList.toggle("on",on); });
+
+// ── 결과 이미지(PNG) ──
+async function drawReport(){
+  try{ await document.fonts.ready; }catch(e){}
+  const W=1080, P=72, R=result(), e=now(), {ds,sum,flow}=sumTimes();
+  // 흰 종이 + 검은 글씨, 색은 채점용 빨강 한 가지만(틀린 문항·초과 시간·80분 선)
+  const C={bg:"#f1ece0", ink:"#161512", ink2:"#524f48", ink3:"#76726a", line:"#d3ccbc", band:"#e5dfd1", red:"#c4302b"};
+  const TX='"Noto Sans KR","Apple SD Gothic Neo",sans-serif', NU='"Azeret Mono",ui-monospace,monospace';
+  const rows=ds.length+SETS.filter(s=>!(s[0] in S.clears)).length;
+  const H = 860 + rows*58 + (R?150:0) + ((S.hardSet||S.hardQ||S.memo)?170:0);
+  const cv=document.createElement("canvas"); cv.width=W; cv.height=H; const g=cv.getContext("2d");
+  g.fillStyle=C.bg; g.fillRect(0,0,W,H);
+  const t=(s,x,y,font,col,al)=>{ g.font=font; g.fillStyle=col; g.textAlign=al||"left"; g.fillText(s,x,y); };
+  const ln=y=>{ g.fillStyle=C.line; g.fillRect(P,y,W-2*P,2); };
+  let y=P+30;
+  t("너의 모든 국어", P, y, `800 34px ${TX}`, C.ink); g.font=`800 34px ${TX}`; t("·  모의고사 분석", P+g.measureText("너의 모든 국어").width+18, y, `500 30px ${TX}`, C.ink3);
+  const d=new Date(), ds2=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+  t(ds2, W-P, y, `400 30px ${NU}`, C.ink3, "right");
+  y+=70; t(EXAM.name, P, y, `700 52px ${TX}`, C.ink);
+  y+=56; t(($("sName").value||"").trim()||"이름 없음", P, y, `500 36px ${TX}`, C.ink2);
+  if(S.subj) t(SUBJ[S.subj], W-P, y, `500 32px ${TX}`, C.ink2, "right");
+  y+=40; ln(y);
+  // 점수
+  y+=110;
+  if(R){ t(`${R.score}`, P, y, `300 120px ${NU}`, C.ink); g.font=`300 120px ${NU}`; const w=g.measureText(`${R.score}`).width;
+    t("점", P+w+14, y, `500 40px ${TX}`, C.ink2);
+    t(`${EXAM.total}문항 중 ${R.ok}개`, W-P, y-50, `500 34px ${TX}`, C.ink2, "right");
+    t(`독서 ${R.area.dok[0]}/17 · 문학 ${R.area.mun[0]}/17 · 선택 ${R.area.sel[0]}/11`, W-P, y, `400 30px ${TX}`, C.ink2, "right");
+  } else t("채점 안 함", P, y, `500 48px ${TX}`, C.ink2);
+  y+=60; ln(y);
+  // 시간
+  y+=66; t("총 시간", P, y, `500 30px ${TX}`, C.ink3);
+  if(e>LIMIT){ t(`+${fmt(e-LIMIT)} 초과`, W-P, y, `400 32px ${NU}`, C.red, "right"); g.font=`400 32px ${NU}`; const ow=g.measureText(`+${fmt(e-LIMIT)} 초과`).width; t(fmt(e), W-P-ow-24, y, `400 40px ${NU}`, C.ink, "right"); } else t(fmt(e), W-P, y, `400 40px ${NU}`, C.ink, "right");
+  y+=58; [["독서",sum.dok],["문학",sum.mun],["선택",sum.sel]].forEach(([n,v],i)=>{
+    const x=P+i*((W-2*P)/3); t(n, x, y, `500 30px ${TX}`, C.ink3); t(fmt(v), x+80, y, `400 34px ${NU}`, C.ink); });
+  // 막대
+  y+=44; const span=Math.max(LIMIT,e), bw=W-2*P, bh=64; let x=P;
+  const shade={dok:"#1f1f1f", mun:"#7a7a7a", sel:"#c9c9c9"};
+  g.strokeStyle=C.line; g.lineWidth=2; g.strokeRect(P,y,bw,bh);
+  ds.forEach(s=>{ const w=s.d/span*bw; g.fillStyle=shade[AREA(s.n)]; g.fillRect(x,y,Math.max(0,w-3),bh);
+    if(w>80){ g.font=`500 22px ${TX}`; g.fillStyle=AREA(s.n)==="sel"?C.ink:"#ffffff"; g.textAlign="center";
+      g.fillText(s.n.replace("독서 세트 ","독서").replace("현대운문","운문").replace("현대소설","소설").replace("고전시가","시가").replace("고전산문","산문"), x+w/2, y+40); }
+    x+=w; });
+  if(span>LIMIT){ const lx=P+LIMIT/span*bw; g.fillStyle=C.red; g.fillRect(lx-2,y-12,4,12); g.fillRect(lx-2,y+bh,4,12); g.fillRect(lx-1,y,2,bh); t("80분", lx, y-16, `500 22px ${TX}`, C.red, "center"); }
+  y+=bh+40; if(flow.length) t("풀이 흐름  "+flow.map(f=>AN[f.a]).join(" → ")+(allDone()&&finalMs()>0?` → 점검 ${fmt(finalMs())}`:""), P, y, `400 28px ${TX}`, C.ink2);
+  y+=30; ln(y);
+  // 세트 표
+  y+=56; t("순서", P, y, `500 26px ${TX}`, C.ink3); t("세트", P+110, y, `500 26px ${TX}`, C.ink3);
+  t("시간", W-P-200, y, `500 26px ${TX}`, C.ink3, "right"); if(R) t("정답", W-P, y, `500 26px ${TX}`, C.ink3, "right");
+  const rowOut=(i,n,tm)=>{ y+=58; if(S.hardSet===n){ g.fillStyle=C.band; g.fillRect(P-16,y-40,W-2*P+32,56); }
+    t(i, P, y, `400 32px ${NU}`, C.ink2); t(n+(EXAM.ranges[n]?`  ${EXAM.ranges[n]}번`:""), P+110, y, `500 32px ${TX}`, C.ink);
+    t(tm, W-P-200, y, `400 32px ${NU}`, C.ink, "right"); if(R&&R.per[n]) t(`${R.per[n][0]}/${R.per[n][1]}`, W-P, y, `400 32px ${NU}`, R.per[n][0]<R.per[n][1]?C.red:C.ink, "right"); };
+  ds.forEach(s=>rowOut(String(s.i), s.n, fmt(s.d)));
+  SETS.map(s=>s[0]).filter(n=>!(n in S.clears)).forEach(n=>rowOut("–", n, "미완"));
+  y+=34; ln(y);
+  if(R){ y+=56; t("틀린 문항", P, y, `500 28px ${TX}`, C.ink3);
+    const wl=R.wrong.length? R.wrong.map(q=>pts(q)===3?q+"*":q).join(", ") : "없음";
+    g.font=`400 30px ${NU}`; g.fillStyle=R.wrong.length?C.red:C.ink; g.textAlign="left"; let line="", yy=y+50;
+    wl.split(", ").forEach((w,i,arr)=>{ const tryL=line?line+", "+w:w; if(g.measureText(tryL).width>W-2*P){ g.fillText(line+",",P,yy); yy+=42; line=w; } else line=tryL; });
+    g.fillText(line,P,yy); y=yy+20; t("* 3점 문항", W-P, y, `400 22px ${TX}`, C.ink3, "right"); y+=20; ln(y); }
+  if(S.hardSet||S.hardQ||S.memo){ y+=56;
+    if(S.hardSet) { t("가장 어려웠던 세트 (표에 회색 줄)", P, y, `500 28px ${TX}`, C.ink3); t(S.hardSet, W-P, y, `500 30px ${TX}`, C.ink, "right"); y+=50; }
+    if(S.hardQ.trim()) { t("가장 어려웠던 문항", P, y, `500 28px ${TX}`, C.ink3); t(S.hardQ.trim(), W-P, y, `400 30px ${NU}`, C.ink, "right"); y+=50; }
+    if(S.memo.trim()) { t("한마디  "+S.memo.trim().slice(0,40), P, y, `400 28px ${TX}`, C.ink2); y+=50; }
+  }
+  // 실제 높이에 맞춰 자르기
+  const out=document.createElement("canvas"); out.width=W; out.height=Math.min(H, y+P);
+  const og=out.getContext("2d"); og.fillStyle=C.bg; og.fillRect(0,0,W,out.height); og.drawImage(cv,0,0);
+  return out;
+}
+// 결과 이미지 저장. 휴대폰은 공유 창('이미지 저장' → 사진 앱)을 먼저 쓰고, 안 되면 다운로드, 그래도 안 되면 길게 눌러 저장.
+// 이미지는 항상 아래에 같이 보여 줌(다운로드가 '파일' 앱으로 가거나 카카오톡 안에서 막혀도 길게 눌러 저장할 수 있게)
+$("saveImg").onclick = async ()=>{
+  const btn=$("saveImg"); btn.disabled=true; $("sMsg").textContent="이미지를 만드는 중이에요…";
+  try{
+    const cv=await drawReport();
+    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+    const nm=(($("sName").value||"").trim()||"결과").replace(/[\\/:*?"<>|]/g,"");
+    const fname=`모의고사분석_${EXAM.name.replace(/\s+/g,"")}_${nm}.png`;
+    $("imgOut").src=URL.createObjectURL(blob); $("imgBox").hidden=false; IMG_SAVED=true;
+    const longPress = IN_KAKAO ? "카카오톡 안에서는 저장이 막힐 수 있어요. 아래 이미지를 길게 눌러 저장하거나 화면을 캡처해 주세요." : "아래 이미지를 길게 눌러 '사진 앱에 저장'을 고르세요.";
+    let done=false;
+    const IS_MOBILE = IS_IOS || /Android/i.test(UA);
+    if(IS_MOBILE && !IN_KAKAO && navigator.canShare){
+      try{
+        const file=new File([blob], fname, {type:"image/png"});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file]}); done=true;
+          $("sMsg").textContent="공유 창에서 '이미지 저장'을 골랐다면 사진 앱에 저장됐어요. 이제 아래에서 선생님께 보내 주세요.";
+        }
+      }catch(err){ if(err && err.name==="AbortError"){ done=true; $("sMsg").textContent="공유를 취소했어요. "+longPress; } }
+    }
+    if(!done){
+      if(!IN_KAKAO && !IS_IOS){
+        const a=document.createElement("a"); a.href=$("imgOut").src; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); done=true;
+        $("sMsg").textContent="다운로드 폴더에 저장했어요. 이제 아래에서 선생님께 보내 주세요.";
+      }
+    }
+    if(!done) $("sMsg").textContent=longPress;
+  }catch(err){ $("sMsg").textContent="이미지를 만들지 못했어요. 화면을 캡처해 주세요."; }
+  btn.disabled=false;
+};
+
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+setInterval(paint, 250);
+paint();
+if(running()) lock();
+</script>
+
+
+</body></html>
